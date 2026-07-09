@@ -1,0 +1,21 @@
+# ─── Python ───────────────────────────────────────────────
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+dist/
+build/
+*.egg-info/
+
+# ─── Environment ──────────────────────────────────────────
+.env
+
+# ─── Downloads (never commit user files) ──────────────────
+downloads/
+
+# ─── OS / editors ─────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

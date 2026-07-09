@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video Downloader</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">
+        <span class="icon">▶⬇</span>
+        <h1>Video Downloader</h1>
+      </div>
+      <p class="subtitle">Paste a YouTube URL, pick quality, download.</p>
+    </header>
+
+    <!-- URL Input -->
+    <section class="card" id="input-section">
+      <div class="input-row">
+        <input
+          type="url"
+          id="url-input"
+          placeholder="https://www.youtube.com/watch?v=..."
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button id="fetch-btn" class="btn btn-primary">🔍 Fetch Info</button>
+      </div>
+    </section>
+
+    <!-- Video Preview -->
+    <section class="card hidden" id="info-section">
+      <div class="video-info">
+        <img id="thumbnail" src="" alt="thumbnail" />
+        <div class="meta">
+          <h2 id="video-title"></h2>
+          <p id="video-uploader"></p>
+          <p id="video-duration"></p>
+          <p id="video-views"></p>
+        </div>
+      </div>
+      <div class="quality-row">
+        <label for="quality-select">Quality</label>
+        <select id="quality-select"></select>
+        <button id="download-btn" class="btn btn-success">⬇ Download</button>
+      </div>
+    </section>
+
+    <!-- Progress -->
+    <section class="card hidden" id="progress-section">
+      <p id="progress-label">Starting download…</p>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+      <p id="progress-pct">0%</p>
+    </section>
+
+    <!-- Done -->
+    <section class="card hidden" id="done-section">
+      <p>✅ Ready!</p>
+      <a id="file-link" class="btn btn-success" href="#">⬇ Save file</a>
+      <button id="reset-btn" class="btn btn-secondary">↩ New download</button>
+    </section>
+
+    <!-- Error -->
+    <section class="card hidden error-card" id="error-section">
+      <p>❌ <span id="error-msg"></span></p>
+      <button id="error-reset-btn" class="btn btn-secondary">↩ Try again</button>
+    </section>
+  </div>
+
+  <footer>
+    <p>Personal use only · Powered by <a href="https://github.com/yt-dlp/yt-dlp" target="_blank">yt-dlp</a> + <a href="https://fastapi.tiangolo.com" target="_blank">FastAPI</a></p>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
