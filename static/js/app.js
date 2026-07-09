@@ -41,15 +41,44 @@ function formatDuration(secs) {
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
   const s = secs % 60;
-  return [h, m, s].filter((v, i) => v > 0 || i > 0).map((v, i, a) =>
-    i === 0 ? v : String(v).padStart(2, '0')
-  ).join(':');
+  return [h, m, s]
+    .filter((v, i) => v > 0 || i > 0)
+    .map((v, i, a) => i === 0 ? v : String(v).padStart(2, '0'))
+    .join(':');
 }
 
 function formatViews(n) {
   if (!n) return '';
   return `${n.toLocaleString()} views`;
 }
+
+function formatSize(bytes) {
+  if (!bytes || bytes === 0) return '';
+  if (bytes >= 1024 ** 3) return `~${(bytes / 1024 ** 3).toFixed(2)} GB`;
+  if (bytes >= 1024 ** 2) return `~${(bytes / 1024 ** 2).toFixed(0)} MB`;
+  return `~${(bytes / 1024).toFixed(0)} KB`;
+}
+
+// ---------------------------------------------------------------------------
+// Size hint (shown below the quality selector)
+// ---------------------------------------------------------------------------
+
+function updateSizeHint() {
+  let hint = document.getElementById('size-hint');
+  if (!hint) {
+    hint = document.createElement('p');
+    hint.id = 'size-hint';
+    hint.className = 'size-hint';
+    qualitySelect.parentElement.appendChild(hint);
+  }
+  const sel = qualitySelect.selectedOptions[0];
+  // Size is stored as data-size attribute to avoid parsing text
+  const bytes = sel ? parseInt(sel.dataset.size || '0', 10) : 0;
+  const sized = formatSize(bytes);
+  hint.textContent = sized ? `💾 Estimated size: ${sized}` : '';
+}
+
+qualitySelect.addEventListener('change', updateSizeHint);
 
 // ---------------------------------------------------------------------------
 // Fetch info
@@ -71,7 +100,7 @@ fetchBtn.addEventListener('click', async () => {
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || 'Error fetching info');
 
-    thumbnail.src      = data.thumbnail || '';
+    thumbnail.src             = data.thumbnail || '';
     videoTitle.textContent    = data.title || 'Unknown title';
     videoUploader.textContent = data.uploader ? `👤 ${data.uploader}` : '';
     videoDuration.textContent = data.duration ? `⏱ ${formatDuration(data.duration)}` : '';
@@ -79,21 +108,26 @@ fetchBtn.addEventListener('click', async () => {
 
     qualitySelect.innerHTML = '';
     (data.available_qualities || []).forEach(q => {
-      const key = q.key || q;
-      const size = q.size ? ` · ${formatSize(q.size)}` : '';
+      // q is always {key, size} from the API
+      const key  = typeof q === 'object' ? q.key  : q;
+      const size = typeof q === 'object' ? (q.size || 0) : 0;
+      const sizeLabel = formatSize(size);
+
       const opt = document.createElement('option');
-      opt.value = key;
+      opt.value           = key;
+      opt.dataset.size    = size;           // store raw bytes for updateSizeHint
       opt.textContent = key === 'audio_only'
-        ? `🎵 Audio only (MP3)${size}`
+        ? `🎵 Audio only (MP3)${sizeLabel ? ' · ' + sizeLabel : ''}`
         : key === 'best'
-          ? `⭐ Best quality${size}`
-          : `📺 ${key}${size}`;
+          ? `⭐ Best quality${sizeLabel ? ' · ' + sizeLabel : ''}`
+          : `📺 ${key}${sizeLabel ? ' · ' + sizeLabel : ''}`;
       if (key === '1080p') opt.selected = true;
       qualitySelect.appendChild(opt);
     });
-    updateSizeHint();
 
     show(infoSection);
+    updateSizeHint();
+
   } catch (e) {
     show(errorSec);
     errorMsg.textContent = e.message;
@@ -102,25 +136,6 @@ fetchBtn.addEventListener('click', async () => {
     fetchBtn.textContent = '🔍 Fetch Info';
   }
 });
-
-// ---------------------------------------------------------------------------
-// Size hint + quality change
-// ---------------------------------------------------------------------------
-
-function updateSizeHint() {
-  const sel = qualitySelect.selectedOptions[0];
-  let hint = document.getElementById('size-hint');
-  if (!hint) {
-    hint = document.createElement('p');
-    hint.id = 'size-hint';
-    hint.className = 'size-hint';
-    qualitySelect.parentElement.appendChild(hint);
-  }
-  const match = sel ? sel.textContent.match(/~[\d.]+ (?:GB|MB|KB)/) : null;
-  hint.textContent = match ? `💾 Estimated size: ${match[0]}` : '';
-}
-
-qualitySelect.addEventListener('change', updateSizeHint);
 
 // ---------------------------------------------------------------------------
 // Download
@@ -133,8 +148,8 @@ downloadBtn.addEventListener('click', async () => {
 
   downloadBtn.disabled = true;
   show(progressSec);
-  progressFill.style.width = '0%';
-  progressPct.textContent  = '0%';
+  progressFill.style.width  = '0%';
+  progressPct.textContent   = '0%';
   progressLabel.textContent = 'Starting download…';
 
   try {
@@ -158,7 +173,7 @@ downloadBtn.addEventListener('click', async () => {
 // ---------------------------------------------------------------------------
 
 async function pollJob(jobId) {
-  const INTERVAL = 1000; // ms
+  const INTERVAL = 1000;
 
   const tick = async () => {
     try {
@@ -177,7 +192,7 @@ async function pollJob(jobId) {
         fileLink.href = `/api/jobs/${jobId}/file`;
         show(doneSec);
         downloadBtn.disabled = false;
-        return; // stop polling
+        return;
       } else if (data.status === 'error') {
         throw new Error(data.error || 'Download failed');
       }
@@ -205,7 +220,6 @@ async function pollJob(jobId) {
   downloadBtn.disabled = false;
 }));
 
-// Allow Enter key in URL input
 urlInput.addEventListener('keydown', e => {
   if (e.key === 'Enter') fetchBtn.click();
 });
