@@ -207,6 +207,14 @@ header .subtitle {
 .error-card { border-color: #ff4e4e44; background: #2d1010; }
 .error-card p { color: #ff8c8c; margin-bottom: 0.75rem; }
 
+/* Size hint */
+.size-hint {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin-top: 0.4rem;
+  width: 100%;
+}
+
 /* Footer */
 footer {
   margin-top: 2rem;

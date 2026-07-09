@@ -78,13 +78,20 @@ fetchBtn.addEventListener('click', async () => {
     videoViews.textContent    = formatViews(data.view_count);
 
     qualitySelect.innerHTML = '';
-    (data.available_qualities || ['best']).forEach(q => {
+    (data.available_qualities || []).forEach(q => {
+      const key = q.key || q;
+      const size = q.size ? ` · ${formatSize(q.size)}` : '';
       const opt = document.createElement('option');
-      opt.value = q;
-      opt.textContent = q === 'audio_only' ? '🎵 Audio only (MP3)' : q === 'best' ? '⭐ Best quality' : `📺 ${q}`;
-      if (q === '1080p') opt.selected = true;
+      opt.value = key;
+      opt.textContent = key === 'audio_only'
+        ? `🎵 Audio only (MP3)${size}`
+        : key === 'best'
+          ? `⭐ Best quality${size}`
+          : `📺 ${key}${size}`;
+      if (key === '1080p') opt.selected = true;
       qualitySelect.appendChild(opt);
     });
+    updateSizeHint();
 
     show(infoSection);
   } catch (e) {
@@ -95,6 +102,25 @@ fetchBtn.addEventListener('click', async () => {
     fetchBtn.textContent = '🔍 Fetch Info';
   }
 });
+
+// ---------------------------------------------------------------------------
+// Size hint + quality change
+// ---------------------------------------------------------------------------
+
+function updateSizeHint() {
+  const sel = qualitySelect.selectedOptions[0];
+  let hint = document.getElementById('size-hint');
+  if (!hint) {
+    hint = document.createElement('p');
+    hint.id = 'size-hint';
+    hint.className = 'size-hint';
+    qualitySelect.parentElement.appendChild(hint);
+  }
+  const match = sel ? sel.textContent.match(/~[\d.]+ (?:GB|MB|KB)/) : null;
+  hint.textContent = match ? `💾 Estimated size: ${match[0]}` : '';
+}
+
+qualitySelect.addEventListener('change', updateSizeHint);
 
 // ---------------------------------------------------------------------------
 // Download

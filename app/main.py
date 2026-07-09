@@ -92,13 +92,46 @@ async def get_info(req: InfoRequest):
     except yt_dlp.utils.DownloadError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    # Collect unique height values for quality selector
-    heights = sorted(
-        {f["height"] for f in info.get("formats", []) if f.get("height")},
-        reverse=True,
+    formats = info.get("formats", [])
+
+    # Build per-height size estimates: pick the best video format at each height
+    # and add the best audio size on top.
+    best_audio_size = max(
+        (f.get("filesize") or f.get("filesize_approx") or 0
+         for f in formats if f.get("acodec") != "none" and f.get("vcodec") == "none"),
+        default=0,
     )
 
-    available = ["best", "audio_only"] + [f"{h}p" for h in heights if f"{h}p" in QUALITY_PRESETS]
+    # Map height → (filesize of best vcodec-only stream at that height)
+    height_video_size: dict[int, int] = {}
+    for f in formats:
+        h = f.get("height")
+        if not h:
+            continue
+        size = f.get("filesize") or f.get("filesize_approx") or 0
+        if size > height_video_size.get(h, 0):
+            height_video_size[h] = size
+
+    heights = sorted(height_video_size.keys(), reverse=True)
+
+    # "best" size = largest combined format
+    best_combined = max(
+        (f.get("filesize") or f.get("filesize_approx") or 0 for f in formats),
+        default=0,
+    )
+
+    def quality_entry(key: str) -> dict:
+        if key == "best":
+            return {"key": key, "size": best_combined}
+        if key == "audio_only":
+            return {"key": key, "size": best_audio_size}
+        h = int(key.rstrip("p"))
+        # video + audio combined estimate
+        size = height_video_size.get(h, 0) + best_audio_size
+        return {"key": key, "size": size}
+
+    preset_keys = ["best"] + [f"{h}p" for h in heights if f"{h}p" in QUALITY_PRESETS] + ["audio_only"]
+    available = [quality_entry(k) for k in preset_keys]
 
     return {
         "title": info.get("title"),
@@ -106,7 +139,7 @@ async def get_info(req: InfoRequest):
         "duration": info.get("duration"),
         "uploader": info.get("uploader"),
         "view_count": info.get("view_count"),
-        "available_qualities": available or list(QUALITY_PRESETS.keys()),
+        "available_qualities": available,
     }
 
 
